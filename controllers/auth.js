@@ -40,6 +40,7 @@ const login = async (req, res = response) => {
       usuario,
       token,
     });
+
   } catch (error) {
     console.log(error);
     return res.status(500).json({
@@ -63,7 +64,7 @@ const googleSignIn = async (req, res = response) => {
         correo,
         password: ":P",
         img,
-        rol: "ADMIN_ROLE",
+        // rol: "ADMIN_ROLE",
         google: true,
       };
 
@@ -86,13 +87,13 @@ const googleSignIn = async (req, res = response) => {
       token,
     });
   } catch (error) {
-    // ok: false,
-    // console.log(error);
+
     res.status(400).json({
       msg: "El Token de Google no es válido",
-      // id_token,
     });
+
   }
+
 };
 
 const renovarToken = async (req, res = response) => {

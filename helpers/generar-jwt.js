@@ -33,16 +33,7 @@ const comprobarJWT = async (token = '') => {
     const { uid } = jwt.verify(token, process.env.SECRETORPRIVATEKEY)
     const usuario = await Usuario.findById(uid);
 
-    if (usuario) {
-      if (usuario.estado) {
-        return usuario;
-      } else {
-        return null;
-      }
-    } else {
-      return null;
-    }
-
+    return usuario?.estado ? usuario : null
   } catch (error) {
     return null;
   }

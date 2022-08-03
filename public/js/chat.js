@@ -5,6 +5,14 @@ const url = (window.location.hostname.includes('localhost'))
 let usuario = null;
 let socket = null;
 
+// Referencias HTML
+const txtUid = document.querySelector('#txtUid');
+const txtMensaje = document.querySelector('#txtMensaje');
+const ulUsuarios = document.querySelector('#ulUsuarios');
+const ulMensajes = document.querySelector('#ulMensajes');
+const ulMensajesPrivados = document.querySelector('#ulMensajesPrivados');
+const btnSalir = document.querySelector('#btnSalir');
+
 // Validar el token del localstorage
 const validarJWT = async () => {
 
@@ -19,10 +27,8 @@ const validarJWT = async () => {
     headers: { 'x-token': token }
   });
 
-  const { usuario: userDB, tokenDB: tokenDB } = await resp.json();
-  // console.log(userDB, tokenDB);
-  localStorage.setItem('token', tokenDB);
-  usuario = userDB;
+  const { usuario, token: newToken } = await resp.json();
+  localStorage.setItem('token', newToken);
   document.title = usuario.nombre;
 
   await conectarSocket();
@@ -30,23 +36,105 @@ const validarJWT = async () => {
 
 const conectarSocket = async () => {
 
-  const socket = io({
+  socket = io({
     'extraHeaders': {
       'x-token': localStorage.getItem('token')
     }
   });
+
+  socket.on('connect', () => {
+    console.log('Socket online');
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket offline');
+  });
+
+  socket.on('recibir-mensajes', dibujarMensajes);
+  socket.on('usuarios-activos', dibujarUsuarios);
+
+  socket.on('mensaje-privado', (payload) => {
+    console.log('Privado:', payload);
+    dibujarMensajePrivado(payload)
+  });
+
+}
+
+const dibujarUsuarios = (usuarios = []) => {
+
+  let usersHtml = '';
+  usuarios.forEach(({ nombre, uid }) => {
+
+    usersHtml += `
+      <li>
+        <p>
+          <h5 class="text-success">${nombre}</h5>
+          <span class="fs-6 text-muted">${uid}</span>
+        </p>
+      </li>
+    `;
+  });
+
+  ulUsuarios.innerHTML = usersHtml;
+
+}
+
+const dibujarMensajes = (mensajes = []) => {
+
+  let mensajesHtml = '';
+  mensajes.forEach(({ nombre, mensaje }) => {
+
+    mensajesHtml += `
+      <li>
+        <p>
+          <span class="text-primary">${nombre}:</span>
+          <span>${mensaje}</span>
+        </p>
+      </li>
+    `;
+  });
+
+  ulMensajes.innerHTML = mensajesHtml;
+
 }
 
 
+const dibujarMensajePrivado = ({ de, mensaje }) => {
+  ulMensajesPrivados.innerHTML = `
+      <li>
+        <p>
+          <span class="text-primary">${de}:</span>
+          <span>${mensaje}</span>
+        </p>
+      </li>
+    ` + ulMensajesPrivados.innerHTML;
+}
+
+
+txtMensaje.addEventListener('keyup', ({ keyCode }) => {
+
+  const mensaje = txtMensaje.value;
+  const uid = txtUid.value;
+
+  if (keyCode !== 13) { return; }
+  if (mensaje.length === 0) { return; }
+
+  socket.emit('enviar-mensaje', { mensaje, uid });
+
+  txtMensaje.value = '';
+
+})
 
 const main = async () => {
-
 
   // Validar JWT
   await validarJWT();
 }
 
 
+btnSalir.addEventListener('click', () => {
+  localStorage.removeItem('token');
+  window.location = 'index.html';
+});
 
-
-
+main();
